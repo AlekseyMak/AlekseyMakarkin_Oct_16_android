@@ -10,7 +10,7 @@
 
 AudioManager manager = AudioManager();
 
-#define GROUND_NOISE_LEVEL 5000.0
+#define GROUND_NOISE_LEVEL 4000.0
 
 int computeEnergyLevel(AudioManager::sample_t *frame, size_t len, bool needWrite)
 {

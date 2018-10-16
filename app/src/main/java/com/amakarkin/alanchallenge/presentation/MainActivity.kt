@@ -1,10 +1,14 @@
 package com.amakarkin.alanchallenge.presentation
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.ValueAnimator
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
+import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import com.amakarkin.alanchallenge.R
 import com.amakarkin.alanchallenge.base.BaseMvpActivity
 import com.arellomobile.mvp.presenter.InjectPresenter
@@ -29,7 +33,27 @@ class MainActivity : BaseMvpActivity(), MainView {
         sample_text.text = stringFromJNI()
 
         start_record.setOnClickListener {
+            energy_meter.visibility = View.VISIBLE
             presenter.startRecording()
+        }
+
+        stop_record.setOnClickListener {
+            presenter.stopRecord()
+            energy_meter.visibility = View.GONE
+        }
+    }
+
+    private var prevLevel = 0
+
+    override fun onEnergyLevel(level: Int) {
+        runOnUiThread {
+            val energyAnimator = ValueAnimator.ofInt(prevLevel, level)
+            energyAnimator.duration = 20
+            energyAnimator.addUpdateListener {
+                energy_meter.progress = it.animatedValue as Int
+            }
+            energyAnimator.start()
+            prevLevel = level
         }
     }
 

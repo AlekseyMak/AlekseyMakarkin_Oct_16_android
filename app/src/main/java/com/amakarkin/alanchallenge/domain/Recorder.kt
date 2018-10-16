@@ -5,6 +5,8 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 import io.reactivex.Observable
+import kotlin.math.log
+import kotlin.math.log10
 
 class Recorder {
 
@@ -15,8 +17,8 @@ class Recorder {
 
     private var shouldContinue = false
 
-    //return energy level
-    fun recordAudio(): Observable<Double> {
+    //return energy level in normalized fashion. 0..100
+    fun recordAudio(): Observable<Int> {
         return Observable.create { emitter ->
             shouldContinue = true
             Thread(Runnable {
@@ -47,6 +49,8 @@ class Recorder {
                 Log.v(TAG, "Start recording")
 
                 var shortsRead: Long = 0
+                var energyLevel: Double
+
                 while (shouldContinue) {
                     if (emitter.isDisposed) {
                         shouldContinue = false
@@ -56,9 +60,13 @@ class Recorder {
                     shortsRead += numberOfShort.toLong()
 
                     // Do something with the audioBuffer
-                    Log.i(TAG, "Shorts: ${shortsRead}, Diff is: ${numberOfShort}, total: ${audioBuffer.fold(0, { i, a -> i + a })}")
+                    Log.i(TAG, "Shorts: ${shortsRead}, Diff is: ${numberOfShort}")
 
-                    emitter.onNext(audioBuffer.last().toDouble())
+                    //map raw values to db format.
+                    energyLevel = audioBuffer.fold(0.0) { acc, sample -> acc + sample * sample } / audioBuffer.size
+                    Log.i(TAG, "${energyLevel}")
+                    energyLevel = 20*log10(energyLevel / 4000)
+                    emitter.onNext(energyLevel.toInt())
                 }
 
                 record.stop()
@@ -67,6 +75,10 @@ class Recorder {
                 emitter.onComplete()
             }).start()
         }
+    }
+
+    fun stopRecording() {
+        shouldContinue = false
     }
 
 }

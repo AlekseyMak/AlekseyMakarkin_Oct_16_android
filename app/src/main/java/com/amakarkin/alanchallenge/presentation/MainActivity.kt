@@ -10,7 +10,7 @@ import com.amakarkin.alanchallenge.base.BaseMvpActivity
 import com.arellomobile.mvp.presenter.InjectPresenter
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : BaseMvpActivity() {
+class MainActivity : BaseMvpActivity(), MainView {
 
     @InjectPresenter
     lateinit var presenter: MainPresenter
@@ -27,6 +27,10 @@ class MainActivity : BaseMvpActivity() {
 
         // Example of a call to a native method
         sample_text.text = stringFromJNI()
+
+        start_record.setOnClickListener {
+            presenter.startRecording()
+        }
     }
 
     /**

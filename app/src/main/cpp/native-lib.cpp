@@ -2,7 +2,7 @@
 #include <string>
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_amakarkin_alanchallenge_MainActivity_stringFromJNI(
+Java_com_amakarkin_alanchallenge_presentation_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
     std::string hello = "Hello from C++";

@@ -10,6 +10,7 @@ import java.io.File
 import android.media.AudioTrack
 import android.media.AudioManager
 import io.reactivex.schedulers.Schedulers
+import java.lang.IllegalStateException
 
 
 class Recorder(context: Context) {
@@ -22,6 +23,7 @@ class Recorder(context: Context) {
 
     private var shouldContinue = false
     private var record: AudioRecord? = null
+    private var audioTrack: AudioTrack? = null
     private lateinit var audioBuffer: ShortArray
     private var filePath: String
 
@@ -33,6 +35,14 @@ class Recorder(context: Context) {
         filePath = "${path.absolutePath}/$FILE_NAME"
     }
 
+    fun stopPlaying() {
+        shouldContinue = false
+    }
+
+    fun stopRecording() {
+        shouldContinue = false
+    }
+
     fun recordAudio(): Observable<Int> {
         return Observable.create { emitter ->
             shouldContinue = true
@@ -40,6 +50,7 @@ class Recorder(context: Context) {
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
 
                 if (!prepareRecorder()) {
+                    emitter.onError(IllegalStateException("Failed to prepare recorder"))
                     return@Runnable
                 }
 
@@ -69,38 +80,31 @@ class Recorder(context: Context) {
         }
     }
 
+    fun changeTempo(speedFactor: Double) {
+        audioTrack?.playbackRate = Math.round(SAMPLE_RATE * speedFactor).toInt()
+    }
+
     fun playAudio(): Observable<Int> {
         val energyObserver: Observable<Int> = Observable.create { emitter ->
-            shouldContinue = true
-            prepareInputNative(filePath)
 
-            var bufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT)
-            if (bufferSize == AudioTrack.ERROR || bufferSize == AudioTrack.ERROR_BAD_VALUE) {
-                bufferSize = SAMPLE_RATE * 2
+            if (!preparePlayer()) {
+                emitter.onError(IllegalStateException("Failed to prepare player"))
+                return@create
             }
 
-            val audioTrack = AudioTrack(
-                    AudioManager.STREAM_MUSIC,
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    bufferSize,
-                    AudioTrack.MODE_STREAM)
-
-            audioTrack.play()
+            audioTrack?.play()
 
             Log.v(TAG, "Audio streaming started")
 
             var buffer = readNative()
             while (buffer != null && shouldContinue) {
-                audioTrack.write(buffer, 0, buffer.size)
+                audioTrack?.write(buffer, 0, buffer.size)
                 emitter.onNext(computeEnergyLevel(buffer))
                 buffer = readNative()
             }
 
             closeInputNative()
-            audioTrack.release()
+            audioTrack?.release()
 
             Log.v(TAG, "Audio streaming finished.")
             emitter.onComplete()
@@ -108,12 +112,27 @@ class Recorder(context: Context) {
         return energyObserver.subscribeOn(Schedulers.computation())
     }
 
-    fun stopPlaying() {
-        shouldContinue = false
-    }
+    private fun preparePlayer(): Boolean {
+        shouldContinue = true
+        if (!prepareInputNative(filePath)){
+            return false
+        }
 
-    fun stopRecording() {
-        shouldContinue = false
+        var bufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT)
+        if (bufferSize == AudioTrack.ERROR || bufferSize == AudioTrack.ERROR_BAD_VALUE) {
+            bufferSize = SAMPLE_RATE * 2
+        }
+
+        audioTrack = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize,
+                AudioTrack.MODE_STREAM)
+
+        return true
     }
 
     private fun prepareRecorder(): Boolean {

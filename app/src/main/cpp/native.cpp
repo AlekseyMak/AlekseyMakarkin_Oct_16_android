@@ -1,7 +1,7 @@
 #include <string.h>
 #include <jni.h>
 #include <android/log.h>
-#include "EnergyCalc.h"
+#include "native.h"
 #include "AudioManager.h"
 #include <iostream>
 #include <iomanip>

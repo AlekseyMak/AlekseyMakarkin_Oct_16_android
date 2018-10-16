@@ -6,7 +6,10 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
+import android.util.Log
 import android.view.View
+import android.widget.SeekBar
+import android.widget.Toast
 import com.amakarkin.alanchallenge.R
 import com.amakarkin.alanchallenge.base.BaseMvpActivity
 import com.arellomobile.mvp.presenter.InjectPresenter
@@ -24,8 +27,24 @@ class MainActivity : BaseMvpActivity(), MainView {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     arrayOf(Manifest.permission.RECORD_AUDIO),
-                    101)
+                    PERMISSION_REQUEST_CODE)
         }
+
+        tempo.incrementProgressBy(1)
+        tempo.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                //
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                //
+            }
+
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                presenter.setPlayBackSpeed(progress)
+            }
+
+        })
 
         start_record.setOnClickListener {
             start_playback.isEnabled = false
@@ -42,6 +61,8 @@ class MainActivity : BaseMvpActivity(), MainView {
         }
 
         start_playback.setOnClickListener {
+            tempo.progress = 3
+            tempo.visibility = View.VISIBLE
             start_record.isEnabled = false
             stop_record.isEnabled = false
             energy_meter.visibility = View.VISIBLE
@@ -49,6 +70,7 @@ class MainActivity : BaseMvpActivity(), MainView {
         }
 
         stop_playback.setOnClickListener {
+            tempo.visibility = View.GONE
             start_record.isEnabled = true
             stop_record.isEnabled = true
             presenter.stopPlayback()
@@ -56,6 +78,28 @@ class MainActivity : BaseMvpActivity(), MainView {
         }
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int,
+                                            permissions: Array<String>, grantResults: IntArray) {
+        when (requestCode) {
+            PERMISSION_REQUEST_CODE -> {
+                // If request is cancelled, the result arrays are empty.
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                } else {
+                    onError("You need to give permissions!")
+                    finish()
+                }
+                return
+            }
+
+            // Add other 'when' lines to check for other
+            // permissions this app might request.
+            else -> {
+                // Ignore all other requests.
+            }
+        }
+    }
     private var prevLevel = 0
 
     override fun onEnergyLevel(level: Int) {
@@ -68,15 +112,17 @@ class MainActivity : BaseMvpActivity(), MainView {
         prevLevel = level
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    external fun stringFromJNI(): String
+
+    override fun onError(error: String) {
+        runOnUiThread {
+            Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     companion object {
 
-        // Used to load the 'native-lib' library on application startup.
+        private val PERMISSION_REQUEST_CODE = 101
+
         init {
             System.loadLibrary("native-lib")
         }

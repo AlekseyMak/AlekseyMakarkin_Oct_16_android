@@ -1,6 +1,6 @@
 #include <android/log.h>
 #include "AudioManager.h"
-#include "EnergyCalc.h"
+#include "native.h"
 
 bool AudioManager::prepareOutputFile(std::string path)
 {

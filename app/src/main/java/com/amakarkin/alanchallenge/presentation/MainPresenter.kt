@@ -14,6 +14,9 @@ import io.reactivex.disposables.Disposable
 interface MainView : MvpView {
     @StateStrategyType(SkipStrategy::class)
     fun onEnergyLevel(level: Int)
+
+    @StateStrategyType(SkipStrategy::class)
+    fun onError(error: String)
 }
 
 @InjectViewState
@@ -28,10 +31,12 @@ class MainPresenter : MvpPresenter<MainView>() {
 
         disposable = recorder?.recordAudio()
                 ?.subscribeOn(AndroidSchedulers.mainThread())
-                ?.subscribe{
+                ?.subscribe({
                     Log.e("Presenter", it.toString())
                     viewState.onEnergyLevel(it)
-                }
+                }, {
+                    viewState.onError(it.message ?: "Unknown error")
+                })
     }
 
     fun stopRecord() {
@@ -44,12 +49,20 @@ class MainPresenter : MvpPresenter<MainView>() {
         }
         recorder?.playAudio()
                 ?.observeOn(AndroidSchedulers.mainThread())
-                ?.subscribe {
+                ?.subscribe({
                     viewState.onEnergyLevel(it)
-                }
+                },
+                        {
+                            viewState.onError(it.message ?: "Unknown error")
+                        })
     }
 
     fun stopPlayback() {
         recorder?.stopPlaying()
+    }
+
+    fun setPlayBackSpeed(speed: Int) {
+        Log.i("Presenter", "Speed is ${speed}")
+        recorder?.changeTempo(speed / 3.0)
     }
 }

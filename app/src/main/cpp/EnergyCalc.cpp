@@ -2,50 +2,65 @@
 #include <jni.h>
 #include <android/log.h>
 #include "EnergyCalc.h"
-#include "audiofile/AudioFile.h"
+#include "AudioManager.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <math.h>
-#include <iterator>
-#include <vector>
 
-class AudioManager
-{
-public:
-
-private:
-
-};
+AudioManager manager = AudioManager();
 
 #define GROUND_NOISE_LEVEL 5000.0
 
-HEADER(jint)
-Java_com_amakarkin_alanchallenge_domain_Recorder_prepareFile(
-        JNIEnv* env,
-        jobject /* this */,
-        jstring path) {
-    return 5;
-}
-
-bool writeDataToFile (std::vector<uint16_t>& fileData, std::string filePath)
+int computeEnergyLevel(AudioManager::sample_t *frame, size_t len, bool needWrite)
 {
-    std::ofstream outputFile (filePath, std::ios::binary);
-
-    if (outputFile.is_open())
+    unsigned long accumulator = 0;
+    for (int i=0; i<len; i++)
     {
-        for (int i = 0; i < fileData.size(); i++)
-        {
-            uint16_t value = fileData[i];
-            outputFile.write (reinterpret_cast<const char*>(&value), sizeof (uint16_t));
+        AudioManager::sample_t sample = (AudioManager::sample_t) frame[i];
+        accumulator += sample * sample;
+
+        if (needWrite) {
+            manager.writeData(sample);
         }
-
-        outputFile.close();
-
-        return true;
     }
 
-    return false;
+    double energy = 20 * log10(accumulator / len / GROUND_NOISE_LEVEL);
+    return (int)fmin(energy, 100);
+}
+
+HEADER(jboolean)
+Java_com_amakarkin_alanchallenge_domain_Recorder_prepareNative(JNIEnv* env,
+                                                               jobject /* this */,
+                                                               jstring path)
+{
+    jboolean isCopy;
+    const char *nativePath = (env)->GetStringUTFChars(path, &isCopy);
+
+    if (manager.prepareOutputFile(nativePath))
+    {
+        return JNI_TRUE;
+    } else {
+        return JNI_FALSE;
+    }
+}
+
+HEADER(void)
+Java_com_amakarkin_alanchallenge_domain_Recorder_stopRecordingNative(JNIEnv* env,
+                                                                     jobject /* this */)
+{
+    manager.closeOutputFile();
+}
+
+HEADER(jint)
+Java_com_amakarkin_alanchallenge_domain_Recorder_computeEnergyLevel(JNIEnv* env,
+                                                              jobject /* this */,
+                                                              jshortArray frame)
+{
+    jsize len = env->GetArrayLength(frame);
+    jshort *body = env->GetShortArrayElements(frame, 0);
+
+    return computeEnergyLevel(body, len, false);
 }
 
 HEADER(jint)
@@ -56,115 +71,39 @@ Java_com_amakarkin_alanchallenge_domain_Recorder_processFrame(JNIEnv* env,
     jsize len = env->GetArrayLength(frame);
     jshort *body = env->GetShortArrayElements(frame, 0);
 
-    LOGE("Got samples")
-    LOGE_DIGIT(len)
-
-    std::vector<uint16_t> samples;
-
-    unsigned long accumulator = 0;
-
-    for (int i=0; i<len; i++)
-    {
-        uint16_t sample = (uint16_t) body[i];
-        accumulator += sample * sample;
-
-        samples.push_back(sample);
-    }
-
-    double energy = 20 * log10(accumulator / len / GROUND_NOISE_LEVEL);
-    return (int)fmin(energy, 100);
+    return computeEnergyLevel(body, len, true);
 }
 
-jstring fromCharArray(JNIEnv* env, const char* str)
+HEADER(jboolean)
+Java_com_amakarkin_alanchallenge_domain_Recorder_prepareInputNative(JNIEnv* env,
+                                                            jobject /* this */,
+                                                            jstring path)
 {
-    jclass strClass = env->FindClass("java/lang/String");
-    jmethodID ctorID = env->GetMethodID(strClass, "<init>", "([BLjava/lang/String;)V");
-    jstring encoding = env->NewStringUTF("UTF-8");
-
-    jbyteArray bytes = env->NewByteArray(strlen(str));
-    env->SetByteArrayRegion(bytes, 0, strlen(str), (jbyte*)str);
-    jstring res = (jstring)env->NewObject(strClass, ctorID, bytes, encoding);
-    return res;
-}
-
-char* appendCharToCharArray(const char* array, char a)
-{
-    size_t len = strlen(array);
-
-    char* ret = new char[len+2];
-
-    strcpy(ret, array);
-    ret[len] = a;
-    ret[len+1] = '\0';
-
-    return ret;
-}
-
-void writeSample() {
-    AudioFile<double> audioFile;
-    AudioFile<double>::AudioBuffer buffer;
-
-// 2. Set to (e.g.) two channels
-    buffer.resize (2);
-
-// 3. Set number of samples per channel
-    buffer[0].resize (100000);
-    buffer[1].resize (100000);
-
-// 4. do something here to fill the buffer with samples
-
-// 5. Put into the AudioFile object
-//    bool ok = audioFile.setAudioBuffer (buffer);
-
-    int numChannels = 2;
-    int numSamplesPerChannel = 100000;
-    float sampleRate = 44100.f;
-    float frequency = 440;
-
-    for (int i = 0; i < numSamplesPerChannel; i++)
-    {
-        float sample = sinf (2. * M_PI * ((float) i / sampleRate) * frequency) ;
-
-        for (int channel = 0; channel < numChannels; channel++)
-            buffer[channel][i] = sample * 0.5;
-    }
-
-    audioFile.setAudioBuffer(buffer);
-    bool ok = audioFile.save("/data/data/com.amakarkin.audiorecorder/files/mydir/test.wav", AudioFileFormat::Wave);
-    if (ok)
-    {
-        LOGE("OK")
-    } else {
-        LOGE("NOT OK")
-    }
-}
-
-HEADER(jstring)
-Java_com_amakarkin_audiorecorder_Recorder_readNative(
-        JNIEnv* env,
-        jobject,
-        jstring path) {
-
     jboolean isCopy;
-    const char *convertedValue = (env)->GetStringUTFChars(path, &isCopy);
-    LOGE(convertedValue)
-    char* res = appendCharToCharArray(convertedValue, 'X');
-    LOGE(res)
-
-    std::string line;
-    std::ifstream myfile (convertedValue);
-    if (myfile.is_open())
-    {
-        while ( getline (myfile,line) )
-        {
-            LOGE(line.c_str())
-        }
-        myfile.close();
+    const char *nativePath = (env)->GetStringUTFChars(path, &isCopy);
+    if (manager.prepareInputFile(nativePath)) {
+        return JNI_TRUE;
+    } else {
+        return JNI_FALSE;
     }
+}
 
-    else LOGE("Unable to open file")
+HEADER(jshortArray)
+Java_com_amakarkin_alanchallenge_domain_Recorder_readNative(JNIEnv* env,
+                                                              jobject /* this */)
+{
+    std::vector<AudioManager::sample_t> buffer = manager.read();
+    jshort *jBuffer = &buffer[0];
+    jshortArray outJNIArray = (*env).NewShortArray(buffer.size());
+    if (NULL == outJNIArray) return NULL;
+    (*env).SetShortArrayRegion(outJNIArray, 0 , buffer.size(), jBuffer);
+    return outJNIArray;
+}
 
-    writeSample();
 
-    return fromCharArray(env, res);
+HEADER(void)
+Java_com_amakarkin_alanchallenge_domain_Recorder_closeInputNative(JNIEnv* env,
+                                                            jobject /* this */)
+{
+    manager.stop();
 }

@@ -2,4 +2,6 @@
     <string name="app_name">AlanChallenge</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
+    <string name="stop_playback">Stop playback</string>
+    <string name="start_playback">Start playback</string>
 </resources>

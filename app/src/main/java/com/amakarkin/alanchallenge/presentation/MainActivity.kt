@@ -1,14 +1,12 @@
 package com.amakarkin.alanchallenge.presentation
 
 import android.Manifest
-import android.animation.Animator
 import android.animation.ValueAnimator
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
 import com.amakarkin.alanchallenge.R
 import com.amakarkin.alanchallenge.base.BaseMvpActivity
 import com.arellomobile.mvp.presenter.InjectPresenter
@@ -29,16 +27,31 @@ class MainActivity : BaseMvpActivity(), MainView {
                     101)
         }
 
-        // Example of a call to a native method
-        sample_text.text = stringFromJNI()
-
         start_record.setOnClickListener {
+            start_playback.isEnabled = false
+            stop_playback.isEnabled = false
             energy_meter.visibility = View.VISIBLE
-            presenter.startRecording()
+            presenter.startRecording(this)
         }
 
         stop_record.setOnClickListener {
+            start_playback.isEnabled = true
+            stop_playback.isEnabled = true
             presenter.stopRecord()
+            energy_meter.visibility = View.GONE
+        }
+
+        start_playback.setOnClickListener {
+            start_record.isEnabled = false
+            stop_record.isEnabled = false
+            energy_meter.visibility = View.VISIBLE
+            presenter.play(this)
+        }
+
+        stop_playback.setOnClickListener {
+            start_record.isEnabled = true
+            stop_record.isEnabled = true
+            presenter.stopPlayback()
             energy_meter.visibility = View.GONE
         }
     }
@@ -46,15 +59,13 @@ class MainActivity : BaseMvpActivity(), MainView {
     private var prevLevel = 0
 
     override fun onEnergyLevel(level: Int) {
-        runOnUiThread {
-            val energyAnimator = ValueAnimator.ofInt(prevLevel, level)
-            energyAnimator.duration = 20
-            energyAnimator.addUpdateListener {
-                energy_meter.progress = it.animatedValue as Int
-            }
-            energyAnimator.start()
-            prevLevel = level
+        val energyAnimator = ValueAnimator.ofInt(prevLevel, level)
+        energyAnimator.duration = 20
+        energyAnimator.addUpdateListener {
+            energy_meter.progress = it.animatedValue as Int
         }
+        energyAnimator.start()
+        prevLevel = level
     }
 
     /**

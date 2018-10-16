@@ -30,7 +30,7 @@ class MainPresenter : MvpPresenter<MainView>() {
         recorder = Recorder(context)
 
         disposable = recorder?.recordAudio()
-                ?.subscribeOn(AndroidSchedulers.mainThread())
+                ?.observeOn(AndroidSchedulers.mainThread())
                 ?.subscribe({
                     Log.e("Presenter", it.toString())
                     viewState.onEnergyLevel(it)

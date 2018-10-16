@@ -63,10 +63,11 @@ class Recorder {
                     Log.i(TAG, "Shorts: ${shortsRead}, Diff is: ${numberOfShort}")
 
                     //map raw values to db format.
-                    energyLevel = audioBuffer.fold(0.0) { acc, sample -> acc + sample * sample } / audioBuffer.size
-                    Log.i(TAG, "${energyLevel}")
-                    energyLevel = 20*log10(energyLevel / 4000)
-                    emitter.onNext(energyLevel.toInt())
+//                    energyLevel = audioBuffer.fold(0.0) { acc, sample -> acc + sample * sample } / audioBuffer.size
+//                    Log.i(TAG, "${energyLevel}")
+//                    energyLevel = 20*log10(energyLevel / 4000)
+//                    emitter.onNext(energyLevel.toInt())
+                    emitter.onNext(processFrame(audioBuffer))
                 }
 
                 record.stop()
@@ -80,5 +81,7 @@ class Recorder {
     fun stopRecording() {
         shouldContinue = false
     }
+
+    private external fun processFrame(buffer: ShortArray): Int
 
 }

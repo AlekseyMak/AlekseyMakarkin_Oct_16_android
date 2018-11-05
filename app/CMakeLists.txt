@@ -16,7 +16,7 @@ include(ndk-stl-config.cmake)
 
 set(Boost_USE_MULTITHREADED ON)
 
-set(boost_root ${CMAKE_SOURCE_DIR}/src/main/cpp/alanbase/boost)
+set(boost_root ${CMAKE_SOURCE_DIR}/src/main/cpp/alanbase/src/boost)
 set(boost_include ${boost_root})
 
 set(ffmpeg_root ${CMAKE_SOURCE_DIR}/src/main/cpp/ffmpeg)
@@ -29,7 +29,28 @@ link_directories(${openssl_root}/lib/${ANDROID_ABI})
 
 set(alanbase_root ${CMAKE_SOURCE_DIR}/src/main/cpp/alanbase)
 
-include_directories( ${alanbase_root}/src ${alanbase_root}/lib ${boost_include} ${openssl_include} ${ffmpeg_include})
+#include_directories( ${alanbase_root}/src ${alanbase_root}/lib ${boost_include} ${openssl_include} ${ffmpeg_include})
+
+#add_library( crypto-lib
+#        SHARED
+#        IMPORTED )
+#add_library( ssl-lib
+#        SHARED
+#        IMPORTED )
+#set_target_properties( # Specifies the target library.
+#        crypto-lib
+#        # Specifies the parameter you want to define.
+#        PROPERTIES IMPORTED_LOCATION
+#        # Provides the path to the library you want to import.
+#        ${openssl_root}/lib/${ANDROID_ABI}/libcrypto.so )
+#set_target_properties( # Specifies the target library.
+#        ssl-lib
+#        # Specifies the parameter you want to define.
+#        PROPERTIES IMPORTED_LOCATION
+#        # Provides the path to the library you want to import.
+#        ${openssl_root}/lib/${ANDROID_ABI}/libssl.so )
+
+message(ERROR ${ffmpeg_include})
 
 file(GLOB_RECURSE src_AlanBase src/main/cpp/alanbase/*.cpp)
 
@@ -44,7 +65,13 @@ add_library( # Sets the name of the library.
         src/main/cpp/AudioManager.cpp
         src/main/cpp/native.cpp)
 
-target_include_directories(native-lib PUBLIC ${alanbase_root}/src ${alanbase_root}/lib ${boost_include} ${openssl_include} ${ffmpeg_include})
+target_include_directories(native-lib
+        PUBLIC
+        ${alanbase_root}/src ${alanbase_root}/lib
+        ${boost_include}
+        ${openssl_include}
+        ${ffmpeg_include}
+        )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -74,6 +101,8 @@ target_link_libraries( # Specifies the target library.
         native-lib
 
         c++_shared
+#        crypto_lib
+#        ssl_lib
         ssl
         crypto
         boost_filesystem

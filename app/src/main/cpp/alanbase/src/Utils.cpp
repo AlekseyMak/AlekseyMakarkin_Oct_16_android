@@ -204,8 +204,9 @@ ThreadChecker::ThreadChecker(const char * name) : _checker(name) {
 static string getPThreadName(pthread_t pId) {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
-    auto res = pthread_getname_np(pId, buffer, sizeof(buffer) - 1);
-    return res == 0 ? "" : buffer;
+//    auto res = pthread_getname_np(pId, buffer, sizeof(buffer) - 1);
+//    return res == 0 ? "" : buffer;
+    return "No getname available";
 }
 
 void ThreadChecker::operator()() const {

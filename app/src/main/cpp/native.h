@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include "jni.h"
+#include "alanbase/src/AlanBase.h"
+#include "alanbase/lib/json.hpp"
 
 #define HEADER(type) extern "C" \
 JNIEXPORT type JNICALL

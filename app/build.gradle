@@ -19,6 +19,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags ""
+                arguments '-DANDROID_STL=c++_shared', '-DANDROID_TOOLCHAIN=gcc', '-DANDROID_PLATFORM=android-18'
             }
         }
     }
@@ -31,6 +32,11 @@ android {
     externalNativeBuild {
         cmake {
             path "CMakeLists.txt"
+        }
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/cpp/ffmpeg/lib', 'src/main/cpp/openssl/lib']
         }
     }
 }

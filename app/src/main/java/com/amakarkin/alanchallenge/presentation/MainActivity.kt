@@ -119,12 +119,20 @@ class MainActivity : BaseMvpActivity(), MainView {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        getVersion()
+    }
+
+    public external fun getVersion()
+
     companion object {
 
         private val PERMISSION_REQUEST_CODE = 101
 
         init {
             System.loadLibrary("native-lib")
+//            System.loadLibrary("avcodec")
         }
     }
 }

@@ -45,6 +45,22 @@ Java_com_amakarkin_alanchallenge_domain_Recorder_prepareNative(JNIEnv* env,
     }
 }
 
+
+HEADER(void)
+Java_com_amakarkin_alanchallenge_presentation_MainActivity_getVersion(JNIEnv* env,
+                                                                     jobject /* this */) {
+
+    sky::AlanBase::Config cfg;
+    sky::AlanBase *alanBase = new sky::AlanBase(nlohmann::json(), cfg);
+    LOGE(alanBase->getVersion().c_str());
+    nlohmann::json js = nlohmann::json();
+    if (js.is_null()) {
+        LOGE("OK")
+    } else {
+        LOGE("NOT OK,, BUT OK")
+    }
+}
+
 HEADER(void)
 Java_com_amakarkin_alanchallenge_domain_Recorder_stopRecordingNative(JNIEnv* env,
                                                                      jobject /* this */)

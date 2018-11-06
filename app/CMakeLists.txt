@@ -113,5 +113,9 @@ target_link_libraries( # Specifies the target library.
         avcodec
         avformat
         avutil
+        avdevice
+        avfilter
+        postproc
+        swscale
         ${android-lib}
         ${log-lib})
